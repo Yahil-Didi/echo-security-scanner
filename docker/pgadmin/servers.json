@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Echo Scanner",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "scanner",
+      "Username": "scanner",
+      "PassFile": "/var/lib/pgadmin/pgpass",
+      "SSLMode": "prefer"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "rootDir": "..",
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "testRegex": "test/.*\\.system-spec\\.ts$",
+  "transform": { "^.+\\.ts$": "ts-jest" },
+  "testEnvironment": "node",
+  "globalSetup": "<rootDir>/test/support/global-setup.ts",
+  "globalTeardown": "<rootDir>/test/support/global-teardown.ts",
+  "testTimeout": 30000
+}

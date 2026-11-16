@@ -1,0 +1,80 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: scanner
+      POSTGRES_PASSWORD: scanner
+      POSTGRES_DB: scanner
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U scanner -d scanner']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # DB browser: http://localhost:5050 — no login, the "Echo Scanner" server is pre-registered.
+  pgadmin:
+    image: dpage/pgadmin4:8.14
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      # Desktop mode: no pgAdmin login screen and no master password (local dev only).
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    # pgpass must be 0600 and owned by the pgadmin user, which a bind mount from Windows/macOS
+    # can't guarantee, so copy it into place before starting pgAdmin.
+    entrypoint: >
+      /bin/sh -c "cp /pgadmin-config/pgpass /var/lib/pgadmin/pgpass &&
+      chmod 600 /var/lib/pgadmin/pgpass &&
+      exec /entrypoint.sh"
+    ports:
+      - '5050:80'
+    volumes:
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
+      - ./docker/pgadmin/pgpass:/pgadmin-config/pgpass:ro
+      - pgadmindata:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # The scanner itself (its image includes Trivy). `docker compose up --build` starts everything;
+  # for local development start only the services above: `docker compose up -d postgres redis pgadmin`.
+  app:
+    build: .
+    # Every setting has a default in src/config/config.schema.ts; only the hosts differ in Docker.
+    environment:
+      DB_HOST: postgres
+      REDIS_HOST: redis
+      # Trivy's vulnerability DB (~1.7 GB) persists here, so restarts don't download it again.
+      # (Per-layer scan results are cached in Redis.)
+      TRIVY_CACHE_DIR: /trivy-cache
+    ports:
+      - '3000:3000'
+    volumes:
+      - trivycache:/trivy-cache
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  redisdata:
+  pgadmindata:
+  trivycache:

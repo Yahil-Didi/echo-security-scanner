@@ -1,0 +1,24 @@
+import { Controller, Get } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
+import { HealthCheck, HealthCheckService, TypeOrmHealthIndicator } from '@nestjs/terminus';
+import { RedisHealthIndicator } from './redis.health';
+
+@ApiTags('health')
+@Controller('health')
+export class HealthController {
+  constructor(
+    private readonly health: HealthCheckService,
+    private readonly db: TypeOrmHealthIndicator,
+    private readonly redis: RedisHealthIndicator,
+  ) {}
+
+  /** 200 when PostgreSQL and Redis answer; 503 with the name of the one that doesn't. */
+  @Get()
+  @HealthCheck()
+  check() {
+    return this.health.check([
+      () => this.db.pingCheck('database'),
+      () => this.redis.pingCheck('redis'),
+    ]);
+  }
+}

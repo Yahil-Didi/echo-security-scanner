@@ -1,0 +1,8 @@
+# Only package*.json, tsconfig*.json, nest-cli.json and src/ are copied into the image; keep the
+# build context small and never send local secrets or build output to Docker.
+node_modules
+dist
+coverage
+.git
+.env
+*.log
